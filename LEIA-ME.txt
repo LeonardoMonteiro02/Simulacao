@@ -1,0 +1,3 @@
+A pasta "sim" corresponde à lógica demonstrada no vídeo e explicada em detalhes no relatório.
+
+Por outro lado, a pasta "sim2" foi abordada na conclusão do relatório e também no vídeo de apresentação. Ela representa a lógica que deve ser efetivamente implementada, onde a classe "Carro" atua como um cliente da classe "Company".
