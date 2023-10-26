@@ -28,7 +28,7 @@ public class Driver extends Thread {
             System.out.println("Rotas Executadas: " + rotasExecutadas.size());
 
             try {
-                Thread.sleep(2000); // Aguarda 5 segundos antes de verificar novamente
+                Thread.sleep(2000); // Aguarda 2 segundos antes de verificar novamente
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -46,7 +46,7 @@ public class Driver extends Thread {
             carroThread.start();
             driverThread.start();
 
-            // Aguarde a conclusão das threads se necessário
+            // Aguarde a conclusão das threads
             carroThread.join();
             driverThread.join();
         } catch (IOException | InterruptedException ex) {
