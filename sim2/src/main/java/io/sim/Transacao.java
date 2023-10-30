@@ -2,12 +2,15 @@ package io.sim;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Transacao {
     private String tipo;
     private double valor;
     private long timestamp;
 
-    public Transacao(String tipo, double valor, long timestamp) {
+    public Transacao(@JsonProperty("tipo") String tipo, @JsonProperty("valor") double valor,
+            @JsonProperty("timestamp") long timestamp) {
         this.tipo = tipo;
         this.valor = valor;
         this.timestamp = timestamp;
