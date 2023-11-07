@@ -16,27 +16,29 @@ import de.tudresden.sumo.objects.SumoPosition2D;
 
 public class Carro implements Runnable {
     private static final String ENDERECO_SERVIDOR = "127.0.0.1";
-    private ClientSocket clienteConexao;
+    private ClientSocket conexaoCompany;
     private String Idcarro;
     private ArrayList<Route> rotasParaExecutar = new ArrayList<>();
     private ArrayList<Route> rotasEmExecucao = new ArrayList<>();
     private ArrayList<Route> rotasExecutadas = new ArrayList<>();
     private double odometro = 0;
+    private String IdDriver = null;
 
-    public Carro(String Idcarro /*
-                                 * boolean _on_off, String _idAuto, SumoColor _colorAuto, String _driverID,
-                                 * SumoTraciConnection _sumo, long _acquisitionRate,
-                                 * int _fuelType, int _fuelPreferential, double _fuelPrice, int _personCapacity,
-                                 * int _personNumber
-                                 */)
+    public Carro(String IdCarro/*
+                                * boolean _on_off, String _idAuto, SumoColor _colorAuto, String _driverID,
+                                * SumoTraciConnection _sumo, long _acquisitionRate,
+                                * int _fuelType, int _fuelPreferential, double _fuelPrice, int _personCapacity,
+                                * int _personNumber
+                                */)
             throws IOException {
 
         // super(_on_off, _idAuto, _colorAuto, _driverID, _sumo, _acquisitionRate,
         // _fuelType, _fuelPreferential,
         // _fuelPrice, _personCapacity, _personNumber);
-        clienteConexao = new ClientSocket(new Socket(ENDERECO_SERVIDOR, Company.PORTA));
+        conexaoCompany = new ClientSocket(new Socket(ENDERECO_SERVIDOR, Company.PORTA));
         System.out.println("Cliente conectado ao servidor em " + ENDERECO_SERVIDOR + ":" + Company.PORTA);
-        this.Idcarro = Idcarro;
+        this.Idcarro = IdCarro;
+
     }
 
     public void start() {
@@ -45,7 +47,7 @@ public class Carro implements Runnable {
             System.out.println("--------------FINAL DE SIMULAÇÃO -----------\n\n");
 
         } finally {
-            clienteConexao.fechar();
+            conexaoCompany.fechar();
         }
     }
 
@@ -56,16 +58,17 @@ public class Carro implements Runnable {
     @Override
     public void run() {
         String mensagem;
-        while ((mensagem = clienteConexao.getMensagem()) != null) {
+        while ((mensagem = conexaoCompany.getMensagem()) != null) {
             if ("RotasTerminadas".equalsIgnoreCase(mensagem)) {
-                clienteConexao.enviarMensagem("sair");
-            } else if ("IdCarro".equalsIgnoreCase(mensagem)) {
-                clienteConexao.enviarMensagem(getIdcarro());
-                clienteConexao.enviarMensagem("IniciarRotas");
+                conexaoCompany.enviarMensagem("sair");
+            } else if ("Registrar".equalsIgnoreCase(mensagem)) {
+                conexaoCompany.enviarMensagem(getIdcarro());
+                conexaoCompany.enviarMensagem(getIdDriver());
+                conexaoCompany.enviarMensagem("IniciarRotas");
 
             } else {
                 Route rota = XMLToJSONConverter.jsonToObject(mensagem, Route.class);
-                clienteConexao.enviarMensagem("RotaRecebida");
+                conexaoCompany.enviarMensagem("RotaRecebida");
                 setRotasParaExecutar(rota);
 
                 try {
@@ -82,8 +85,17 @@ public class Carro implements Runnable {
         return Idcarro;
     }
 
+    public synchronized String getIdDriver() {
+        return IdDriver;
+
+    }
+
     public void setIdcarro(String Idcarro) {
         this.Idcarro = Idcarro;
+    }
+
+    public void setIdDriver(String IdDriver) {
+        this.IdDriver = IdDriver;
     }
 
     public synchronized ArrayList<Route> getRotasParaExecutar() {
@@ -117,12 +129,15 @@ public class Carro implements Runnable {
         setRotasEmExecucao(rota);
         try {
             Thread.sleep(1000); // Aguarda 5 segundos
+            conexaoCompany.enviarMensagem("UMKM");
+            Thread.sleep(1000); // Aguarda 5 segundos
             setRotasexecutada(getRotasEmExecucao().remove(0));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        clienteConexao.enviarMensagem("RotaConcluida");
-        clienteConexao.enviarMensagem(XMLToJSONConverter.objectToJson(rota));
+        conexaoCompany.enviarMensagem("RotaConcluida");
+        conexaoCompany.enviarMensagem(XMLToJSONConverter.objectToJson(rota));
+        System.out.println("rota concluida");
 
         // System.out.println("--------------Relatorio de simulação do veiculo
         // -----------");

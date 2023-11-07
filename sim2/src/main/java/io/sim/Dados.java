@@ -7,7 +7,6 @@ public class Dados {
     private String senha;
     private String documento;
     private String numeroConta;
-    private double saldo;
 
     public Dados(@JsonProperty("login") String login, @JsonProperty("senha") String senha,
             @JsonProperty("documento") String documento) {
@@ -15,7 +14,7 @@ public class Dados {
         this.senha = senha;
         this.documento = documento;
         this.numeroConta = null;
-        this.saldo = 0;
+
     }
 
     public String getLogin() {
@@ -48,14 +47,6 @@ public class Dados {
 
     public void setDocumento(String documento) {
         this.documento = documento;
-    }
-
-    public double getSaldo() {
-        return saldo;
-    }
-
-    public void setSaldo(double saldo) {
-        this.saldo = saldo;
     }
 
 }

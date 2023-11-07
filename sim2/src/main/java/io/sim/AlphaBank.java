@@ -3,24 +3,18 @@ package io.sim;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Random;
 
-import javax.sound.midi.Soundbank;
-
-import org.python.antlr.ast.Break;
-import org.stringtemplate.v4.compiler.CodeGenerator.primary_return;
-
-import java.util.List;
+import org.python.modules.synchronize;
 
 public class AlphaBank extends Thread {
     public static final int PORTA = 3456;
-    private ArrayList<Cadastro> cadastros;
+    private ArrayList<Cadastro> cadastros = new ArrayList<>();
     private ServerSocket servidorSocket;
+    private ArrayList<String> IdDrivers = new ArrayList<>();
 
     public AlphaBank(int PORTA) {
-        cadastros = new ArrayList<>();
 
         try {
             servidorSocket = new ServerSocket(PORTA);
@@ -34,7 +28,9 @@ public class AlphaBank extends Thread {
         while (true) {
             System.out.println("Aguardando conexão");
             try {
-                ClientSocket conexaoCliente = new ClientSocket(servidorSocket.accept());
+                ClientSocket conexaoCliente = new ClientSocket(servidorSocket.accept()); // A conexaõa pode ser entre
+                                                                                         // pessoa física ou pessoa
+                                                                                         // juridica
                 new Thread(() -> loopMensagemCliente(conexaoCliente)).start();
             } catch (IOException e) {
                 break;
@@ -53,38 +49,33 @@ public class AlphaBank extends Thread {
                         break;
                     } else if ("Criarconta".equalsIgnoreCase(mensagem)) {
                         String dadosJson = conexaoCliente.getMensagem();
-                        if (criarConta(dadosJson, conexaoCliente)) {
+                        String idDriver = conexaoCliente.getMensagem();
+                        if (criarConta(dadosJson, conexaoCliente, idDriver)) {
                             conexaoCliente.enviarMensagem("Conta criada com sucesso.");
                             System.out.println("Conta criada com sucesso");
                         } else {
                             conexaoCliente.enviarMensagem("Erro ao criar conta.");
                         }
                     } else if ("Saldo".equalsIgnoreCase(mensagem)) {
-                        String numeroConta = XMLToJSONConverter.jsonToObject(conexaoCliente.getMensagem(), Dados.class)
-                                .getNumerodaConta();
+                        String numeroConta = XMLToJSONConverter.jsonToAttribute(conexaoCliente.getMensagem())
+                                .toString();
                         double saldo = obterSaldo(numeroConta);
 
                         if (saldo != -1) {
-                            conexaoCliente.enviarMensagem("Saldo da conta " + numeroConta + ": " + saldo);
+                            conexaoCliente.enviarMensagem(XMLToJSONConverter.attributeToJson(saldo));
                             System.out.println("Saldo da conta " + numeroConta + ": " + saldo);
-
                         } else {
                             conexaoCliente.enviarMensagem("Conta não encontrada.");
                         }
                     } else if ("Tranzacao".equalsIgnoreCase(mensagem)) {
-                        conexaoCliente.enviarMensagem("Tipo de Tranzação");
                         mensagem = conexaoCliente.getMensagem();
-                        System.out.println("Mensagem: " + mensagem);
 
-                        TipoTransacao tipoTransacao = XMLToJSONConverter.jsonToObject(mensagem, TipoTransacao.class);
-                        System.out.println("Não e aqui 1");
-                        double valor = tipoTransacao.getValor();
-
-                        if (realizarTransacao(tipoTransacao, valor, conexaoCliente)) {
+                        if (realizarTransacao(mensagem)) {
                             conexaoCliente.enviarMensagem("Transação realizada com sucesso.");
                         } else {
                             conexaoCliente.enviarMensagem("Erro ao realizar transação.");
                         }
+
                     } else if ("Extrato".equalsIgnoreCase(mensagem)) {
                         mensagem = conexaoCliente.getMensagem();
                         Dados dados = XMLToJSONConverter.jsonToObject(mensagem, Dados.class);
@@ -108,22 +99,21 @@ public class AlphaBank extends Thread {
         }
     }
 
-    public synchronized boolean criarConta(String dadosJson, ClientSocket conexaoCliente) {
+    public synchronized boolean criarConta(String dadosJson, ClientSocket conexaoCliente, String IdDriver) {
         if (dadosJson != null) {
             Dados dados = XMLToJSONConverter.jsonToObject(dadosJson, Dados.class);
+            String Id = XMLToJSONConverter.jsonToAttribute(IdDriver).toString();
             ContaCorrente novaConta = new ContaCorrente(gerarNumeroContaUnico(), 100.0, dados.getLogin(),
                     dados.getSenha(), dados.getDocumento());
 
             if (!cadastros.contains(conexaoCliente)) {
-                Cadastro cadastro = new Cadastro(novaConta, conexaoCliente);
+                Cadastro cadastro = new Cadastro(novaConta, conexaoCliente, Id);
                 cadastros.add(cadastro);
-                dados.setNumerodaConta(novaConta.getNumeroConta());
-                dados.setSaldo(novaConta.getSaldo());
-                conexaoCliente.enviarMensagem(XMLToJSONConverter.objectToJson(dados));
+                conexaoCliente.enviarMensagem(XMLToJSONConverter.attributeToJson(novaConta.getNumeroConta()));
                 System.out.println("Quantidade de contas cadastradas: " + cadastros.size());
                 return true;
             } else {
-                System.out.println("Cliente ja possui conta");
+                System.out.println("Cliente já possui conta");
                 return false;
             }
         }
@@ -132,7 +122,6 @@ public class AlphaBank extends Thread {
 
     public synchronized double obterSaldo(String numeroConta) {
         for (Cadastro cadastro : cadastros) {
-
             if (cadastro.getConta().getNumeroConta().equals(numeroConta)) {
                 return cadastro.getConta().getSaldo();
             }
@@ -162,11 +151,14 @@ public class AlphaBank extends Thread {
         }
     }
 
-    public synchronized boolean realizarTransacao(TipoTransacao tipoTransacao, double valor,
-            ClientSocket conexaoCliente) {
+    public synchronized boolean realizarTransacao(String mensagem) {
+
+        TipoTransacao tipoTransacao = XMLToJSONConverter.jsonToObject(mensagem, TipoTransacao.class);
+        double valor = tipoTransacao.getValor();
 
         for (Cadastro cadastroRemetente : cadastros) {
-            if (cadastroRemetente.getConta().getNumeroConta().equals(tipoTransacao.getnumerocontaRemetente())) {
+            if (cadastroRemetente.getIdCliente().equals(tipoTransacao.getIdRemetente())) {
+                System.out.println("Cliente encontrado");
                 ContaCorrente conta = cadastroRemetente.getConta();
                 switch (tipoTransacao.getTipo()) {
                     case SAQUE:
@@ -174,13 +166,12 @@ public class AlphaBank extends Thread {
                         return true;
                     case DEPOSITO:
                         conta.depositar(valor);
+                        System.out.println("depositado");
                         return true;
                     case TRANSFERENCIA:
-
                         for (Cadastro cadastroDestino : cadastros) {
-                            if (cadastroDestino.getConta().getNumeroConta()
-                                    .equals(tipoTransacao.getnumeorocontaDestino())) {
-                                System.out.println("Não e aqui 2");
+                            if (cadastroDestino.getIdCliente()
+                                    .equals(tipoTransacao.getIdDestino())) {
                                 return realizarTransferencia(cadastroDestino.getConta(), cadastroRemetente.getConta(),
                                         tipoTransacao.getValor());
                             }
@@ -192,24 +183,20 @@ public class AlphaBank extends Thread {
     }
 
     public synchronized List<Transacao> obterExtrato(String numeroConta) {
-
         for (Cadastro cadastro : cadastros) {
             if (cadastro.getConta().getNumeroConta().equals(numeroConta)) {
                 return cadastro.getConta().getExtrato();
             }
         }
-
         return new ArrayList<>(); // Conta não encontrada
     }
 
     public synchronized boolean realizarTransferencia(ContaCorrente contaDestino, ContaCorrente contaOrigem,
             double valor) {
         if (contaDestino != null && contaOrigem != null && valor > 0) {
-
-            if (contaOrigem.getSaldo() >= valor) { // Tenta sacar o valor da conta de origem
+            if (contaOrigem.getSaldo() >= valor) {
                 contaOrigem.sacar(valor);
-                contaDestino.depositar(valor); // Deposita o valor na conta de destino
-                System.out.println("Não e aqui 3");
+                contaDestino.depositar(valor);
                 return true; // Transferência bem-sucedida
             } else {
                 System.out.println("Saldo insuficiente para realizar transação");
@@ -220,18 +207,22 @@ public class AlphaBank extends Thread {
     }
 
     class Cadastro {
-
         private ContaCorrente conta;
         private ClientSocket conexaoCliente;
+        private String idCliente;
 
-        public Cadastro(ContaCorrente conta, ClientSocket conexaoCliente) {
-
+        public Cadastro(ContaCorrente conta, ClientSocket conexaoCliente, String idDriver) {
             this.conta = conta;
             this.conexaoCliente = conexaoCliente;
+            this.idCliente = idDriver;
         }
 
         public ContaCorrente getConta() {
             return conta;
+        }
+
+        public String getIdCliente() {
+            return idCliente;
         }
 
         public ClientSocket getConexaocliente() {
