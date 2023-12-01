@@ -2,6 +2,11 @@ package io.sim;
 
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +21,38 @@ public class RouteParser {
         parseRoutesFromXML(xmlFilePath);
     }
 
+    private void cleanDocument(org.w3c.dom.Document document) {
+        // Obtém o elemento raiz do documento
+        Element rootElement = document.getDocumentElement();
+
+        // Obtém todos os elementos filhos com o nome "vehicle"
+        NodeList vehicleNodes = rootElement.getElementsByTagName("vehicle");
+
+        // Remove cada elemento "vehicle"
+        // Precisamos percorrer a lista de trás para frente para evitar problemas com a
+        // remoção dinâmica
+        for (int i = vehicleNodes.getLength() - 1; i >= 0; i--) {
+            Node node = vehicleNodes.item(i);
+            rootElement.removeChild(node);
+        }
+    }
+
+    private void saveDocument(org.w3c.dom.Document document, String xmlFilePath) {
+        try {
+            // Salvar as alterações de volta no arquivo XML
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(document);
+            StreamResult result = new StreamResult(new File(xmlFilePath));
+            transformer.transform(source, result);
+
+            System.out.println("Arquivo XML limpo e salvo com sucesso!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void parseRoutesFromXML(String xmlFilePath) {
         try {
             // Carrega o arquivo XML
@@ -26,6 +63,8 @@ public class RouteParser {
 
             // Obtém a lista de elementos "vehicle" no XML
             NodeList vehicleNodes = document.getElementsByTagName("vehicle");
+
+            // Salvar as alterações de volta no arquivo
 
             // Loop para processar cada elemento "vehicle" encontrado no XML
             for (int i = 0; i < vehicleNodes.getLength(); i++) {
@@ -45,7 +84,13 @@ public class RouteParser {
                 String rota = XMLToJSONConverter.objectToJson(route);
                 route = XMLToJSONConverter.jsonToObject(rota, Route.class);
                 routes.add(route);
+
             }
+            // Limpa o documento após a leitura
+            cleanDocument(document);
+
+            // Salva as alterações de volta no arquivo
+            saveDocument(document, xmlFilePath);
         } catch (Exception e) {
             // Em caso de exceção, imprime o erro
             e.printStackTrace();

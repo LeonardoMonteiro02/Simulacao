@@ -13,7 +13,7 @@ import org.python.modules.synchronize;
 
 public class Company extends Thread {
     private static final String ENDERECO_SERVIDOR = "127.0.0.2"; // novo
-    public static final int PORTA = 12345;
+    public static final int PORTA = 55669;
     private ServerSocket servidorSocket;
     private ClientSocket conexaoAlphaBank; // novo
     private List<ClientSocket> motlivre = new LinkedList<>();
@@ -85,10 +85,13 @@ public class Company extends Thread {
             try {
                 ClientSocket conexaoDriver = new ClientSocket(servidorSocket.accept());
                 conexaoDriver.enviarMensagem("Registrar");
-                String idCarro = conexaoDriver.getMensagem();
-                String idDriver = conexaoDriver.getMensagem();
+                String idCarro = XMLToJSONConverter.jsonToAttribute(conexaoDriver.getMensagem()).toString();
+                System.out.println(idCarro);
+                String idDriver = XMLToJSONConverter.jsonToAttribute(conexaoDriver.getMensagem()).toString();
+                System.out.println(idDriver);
                 System.out.println("Informções dos Drivers recebida");
                 Frota drivers = new Frota(conexaoDriver, idCarro, idDriver);
+
                 frota.add(drivers);
                 new Thread(() -> loopMensagemCliente(conexaoDriver)).start();
             } catch (IOException e) {
@@ -134,7 +137,9 @@ public class Company extends Thread {
                         removerRota(conexaoDriver.getMensagem());
                         atribuirRota(conexaoDriver);
                     } else if ("IniciarRotas".equalsIgnoreCase(mensagem)) {
+
                         atribuirRota(conexaoDriver);
+
                     } else if ("UMKM".equalsIgnoreCase(mensagem)) {
                         System.out.println("Veiculo: " + conexaoDriver + " solicita pagamento");
                         pagarDriver(conexaoDriver);
@@ -168,7 +173,9 @@ public class Company extends Thread {
         if (!getRotasParaExecutar().isEmpty()) {
             Route rotaAtribuida = getRotasParaExecutar().remove(0);
             setRotasEmExecucao(rotaAtribuida);
-            conexaoDriver.enviarMensagem(XMLToJSONConverter.objectToJson(rotaAtribuida));
+
+            Itinerary itinerary = new Itinerary(true, rotaAtribuida, rotaAtribuida.getId());
+            conexaoDriver.enviarMensagem(XMLToJSONConverter.objectToJson(itinerary));
 
             String mensagem;
             while (true) {

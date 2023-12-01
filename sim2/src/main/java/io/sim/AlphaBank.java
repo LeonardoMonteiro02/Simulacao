@@ -9,7 +9,7 @@ import java.util.Random;
 import org.python.modules.synchronize;
 
 public class AlphaBank extends Thread {
-    public static final int PORTA = 3456;
+    public static final int PORTA = 7898;
     private ArrayList<Cadastro> cadastros = new ArrayList<>();
     private ServerSocket servidorSocket;
     private ArrayList<String> IdDrivers = new ArrayList<>();

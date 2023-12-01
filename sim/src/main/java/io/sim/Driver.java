@@ -21,14 +21,14 @@ public class Driver implements Runnable {
 
     }
 
-    public void start() throws IOException {
-        try {
-            new Thread(this).run();
+    // public void start() throws IOException {
+    // try {
+    // new Thread(this).run();
 
-        } finally {
-            clienteConexao.fechar();
-        }
-    }
+    // } finally {
+    // clienteConexao.fechar();
+    // }
+    // }
 
     @Override
     public void run() {
@@ -56,6 +56,7 @@ public class Driver implements Runnable {
                 }
             }
         }
+        clienteConexao.fechar();
     }
 
     public synchronized ArrayList<Route> getRotasParaExecutar() {
@@ -114,20 +115,44 @@ public class Driver implements Runnable {
 
         try {
             Carro carro1 = new Carro("Carro 1");
-            Driver cliente = new Driver(carro1);
+            Carro carro2 = new Carro("Carro 2");
+            Carro carro3 = new Carro("Carro 3");
+            Carro carro4 = new Carro("Carro 4");
+            Driver cliente1 = new Driver(carro1);
+            Driver cliente2 = new Driver(carro2);
+            Driver cliente3 = new Driver(carro3);
+            Driver cliente4 = new Driver(carro4);
 
-            Thread driverThread = new Thread(cliente);
-            Thread carroThread = new Thread(carro1);
+            Thread driverThread1 = new Thread(cliente1);
+            Thread driverThread2 = new Thread(cliente2);
+            Thread driverThread3 = new Thread(cliente3);
+            Thread driverThread4 = new Thread(cliente4);
+            Thread carroThread1 = new Thread(carro1);
+            Thread carroThread2 = new Thread(carro2);
+            Thread carroThread3 = new Thread(carro3);
+            Thread carroThread4 = new Thread(carro4);
 
-            driverThread.start();
-            carroThread.start(); // Use start() para iniciar uma nova thread
+            driverThread1.start();
+            driverThread2.start();
+            driverThread3.start();
+            driverThread4.start();
+            carroThread1.start(); // Use start() para iniciar uma nova thread
+            carroThread2.start();
+            carroThread3.start();
+            carroThread4.start();
 
             // Aguarde até que ambas as threads terminem
             try {
-                driverThread.join();
-                carroThread.join();
+                driverThread1.join();
+                driverThread2.join();
+                driverThread3.join();
+                driverThread4.join();
+                carroThread1.join();
+                carroThread2.join();
+                carroThread3.join();
+                carroThread4.join();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
 
         } catch (IOException ex) {

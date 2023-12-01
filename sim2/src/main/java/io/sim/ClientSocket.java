@@ -39,7 +39,7 @@ public class ClientSocket {
             saida.println(CriptografiaAES.criptografar(mensagem));
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            System.out.println("Erro 5");
+            System.out.println("Erro 5" + e.getMessage());
             // e.printStackTrace();
         }
         return !saida.checkError();

@@ -2,7 +2,7 @@ package io.sim;
 
 import java.io.IOException;
 
-public class Carro extends Thread {
+public class Carro implements Runnable {
 
     private String nome;
     private Route rotaAtribuida;
@@ -18,14 +18,6 @@ public class Carro extends Thread {
     public void parar() {
         this.parar = false;
 
-    }
-
-    public void start() {
-        try {
-            new Thread(this).run(); // Use start() para iniciar uma nova thread
-        } finally {
-
-        }
     }
 
     @Override
